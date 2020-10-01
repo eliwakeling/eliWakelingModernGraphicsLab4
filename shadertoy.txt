@@ -1,6 +1,5 @@
-//Code modified by Eli Wakeling.
-
 // GLSL STARTER CODE BY DANIEL S. BUCKSTEIN
+// MODIFIED BY ELI WAKELING
 
 // asPoint: promote a 3D vector into a 4D vector representing a point (w=1)
 //    point: input 3D vector
@@ -94,28 +93,34 @@ float diffuseCoef (in vec3 normal, in vec3 position, in vec3 lightCenter) {
 
 float attinuation (in float intensity, in float dist) {
  
+   //Establish proper order of opperations.
    float dist1 = dist / intensity;
    float dist2 = (dist * dist) / (intensity * intensity);
+   //Find the final Attinuation.
    float att = 1.0 / (1.0 + dist1 + dist2);
    return att;
    
 }
 
 vec3 finalColor(in float diffcoef, in float attinu, in vec3 surfaceColor, in vec3 lightColor ){
-	float diffIntense = diffcoef * attinu;
+	
+    //Find the final color of the sphere in lambert.
+    float diffIntense = diffcoef * attinu;
     vec3 finalCol = diffIntense * surfaceColor * lightColor;
+    
     return finalCol;
 
 }
 
-float phongSpecCoef(vec3 viewport, vec3 position, vec3 normal, vec3 lightCenter, bool blinPhong) {
+float phongSpecCoef(vec4 viewport, vec3 position, vec3 normal, vec3 lightCenter, bool blinPhong) {
 
     //Set Vectors
-    vec3 viewVector = normalize(viewport - position);
+    vec3 viewVector = normalize(viewport.xyz - position);
     vec3 lightVec = normalize(position - lightCenter);
     vec3 refLightVec = reflect(-lightVec, normal);
     float specCoef = max(0.0, dot(viewVector, normal));
     
+    //Change the specular Coefficient if we are using blin-phong shading.
     if (blinPhong == true){
     vec3 halfwayVector = normalize(lightVec + normal);
     specCoef = max(0.0, dot(halfwayVector, normal));
@@ -129,22 +134,26 @@ float phongSpecCoef(vec3 viewport, vec3 position, vec3 normal, vec3 lightCenter,
 
 float phongSpecIntensity(in float phongSpecCoef, in float power, bool blinPhong){
 
+    //If we are using blin-Phong Shading.
     if (blinPhong == true){
     power *= 4.0;
     }
         
+    //Find the specular intensity.
     float specIntensity = pow(phongSpecCoef, power);
     return specIntensity;
     
 }
 
-vec3 phongColor(in vec3 globAmbInt, in vec3 globAmbCol, in float diffuseInt, in vec3 surfColor, in float specIntensity, in vec3 specRefCol, in vec3 lightColor)
+vec3 phongColor(float globAmbInt, in vec3 globAmbCol, in float diffuseInt, in vec3 surfColor, in float specIntensity, in vec3 specRefCol, in vec3 lightColor)
 {
 
+    //Set Order of opperations.
     vec3 combinedDiffuse = surfColor * diffuseInt;
     vec3 combinedSpecular = specIntensity * specRefCol;
     vec3 combinedAmbience = globAmbCol * globAmbInt;
     
+    //Calculate the color of the scene.
     vec3 finalColor = combinedAmbience + (combinedDiffuse + combinedSpecular) * lightColor;
     
     return finalColor;
@@ -157,7 +166,7 @@ bool initSphere(out sSphere sphere, in vec3 center, in float radius)
     sphere.center = asPoint(center);
     
     if (radius > 0.0){
-//Set radius size.
+    //Set radius size.
     sphere.radius = radius;
     return true;
     }
@@ -195,10 +204,18 @@ vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
     sSphere sphere;
     float diffCoef;
     pLight light1;
+    pLight light2;
+    pLight light3;
+    pLight light4;
+    //The exponent used to find the Specular intensity.
     float highlightExpo = 4.0;
     //Initialize the sphere
     initSphere(sphere, vec3(0.0, 0.0, -4.0), 0.5);
-    initLight(light1, vec3(0.3, 0.3, -4.5), vec3(1.0, 1.0, 1.0), 6.0);
+    //Initialize the lights.
+    initLight(light1, vec3(-0.3, 0.3, -4.5), vec3(1.0, 1.0, 1.0), 6.0);
+    initLight(light2, vec3(0.3, 0.5, -4.5), vec3(1.0, 1.0, 1.0), 6.0);
+    initLight(light3, vec3(0.4, 0.3, -4.5), vec3(1.0, 1.0, 1.0), 6.0);
+    initLight(light4, vec3(0.6, 0.3, -4.5), vec3(1.0, 1.0, 1.0), 6.0);
     
     //Calculate Surface normals.
     vec3 dp;
@@ -207,12 +224,15 @@ vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
     float rSq = sphere.radius * sphere.radius;
     if (lSq <= rSq)
     {
+        //Finding the sphere normals
     	dp.z = rSq - lSq;
         
         vec3 position = (sphere.center.xyz) + vec3(dp.x, dp.y, sqrt(dp.z));
         float dist = length(position - light1.center.xyz);
         
         vec3 normal = (((position - sphere.center.xyz) / sphere.radius) * 0.5 + 0.5);
+        
+        //Comment out all shading lines except for the shading you are currently using.
         
         //Lambert Shading.
         float diff1;
@@ -222,17 +242,33 @@ vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
         finalCol = finalColor(diff1, attinu, vec3(1.0, 1.0, 1.0), light1.color.xyz );
         return vec4(finalCol, 1);
         
-        //Blin Shading
-       // float diff1;
-       // diff1 = diffuseCoef(normal, position, light1.center.xyz);
-       // float phongSpecCoef(vec3 viewport, vec3 position, vec3 normal, vec3 lightCenter) 
+        //Phong Shading
+        //float diff1;
+        //diff1 = diffuseCoef(normal, position, light1.center.xyz);
+        //float attinu = attinuation(light1.intensity, dist);
+        //float diffuseInt = diff1 * attinu;
+        //float specCoef;
+        //specCoef = phongSpecCoef(rayOrigin, position, normal, light1.center.xyz, false);
+        //float specInt = phongSpecIntensity(specCoef, highlightExpo, false);
+        //vec3 finalPhong = phongColor(0.0, vec3(1.0, 1.0, 1.0), diffuseInt, vec3(1.0, 1.0, 1.0),specInt, vec3(1.0, 1.0, 1.0), light1.color.xyz);
+        //return vec4(finalPhong, 1);
+        
+        //Blin-Phong Shading
+        //float diff1;
+        //diff1 = diffuseCoef(normal, position, light1.center.xyz);
+        //float attinu = attinuation(light1.intensity, dist);
+        //float diffuseInt = diff1 * attinu;
+        //float specCoef;
+        //specCoef = phongSpecCoef(rayOrigin, position, normal, light1.center.xyz, true);
+        //float specInt = phongSpecIntensity(specCoef, highlightExpo, true);
+        //vec3 finalPhong = phongColor(0.0, vec3(1.0, 1.0, 1.0), diffuseInt, vec3(1.0, 1.0, 1.0),specInt, vec3(1.0, 1.0, 1.0), light1.color.xyz);
+        //return vec4(finalPhong, 1);
         
     }
 	
 	// BACKGROUND
 	const vec3 warm = vec3(0.8, 0.4, 0.2), cool = vec3(0.2, 0.4, 0.8);
-	//return vec4(mix(warm, cool, rayDirection.y), 1.0);
-    return vec4(0.5, 0.5, 0.5, 1.0);
+	return vec4(mix(warm, cool, rayDirection.y), 1.0);
 }
 
 // mainImage: process the current pixel (exactly one call per pixel)
